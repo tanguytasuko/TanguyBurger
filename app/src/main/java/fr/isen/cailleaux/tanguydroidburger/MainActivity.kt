@@ -2,6 +2,7 @@ package fr.isen.cailleaux.tanguydroidburger
 
 import android.os.Bundle
 import android.view.Gravity
+import android.view.ViewGroup
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 
@@ -10,27 +11,38 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Création du LinearLayout qui sera le conteneur principal
+        // ScrollView qui permettra le défilement
+        val scrollView = ScrollView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+
+        // Création du LinearLayout qui sera le conteneur principal à l'intérieur du ScrollView
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
+            gravity = Gravity.CENTER
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
-            var padding = 16
         }
 
         // Ajout d'un ImageView pour le logo
         val imageView = ImageView(this).apply {
+            setImageResource(R.drawable.burger)
+            adjustViewBounds = true  // Ajuste les limites de la vue pour préserver le ratio de l'aspect de l'image
+            scaleType = ImageView.ScaleType.FIT_CENTER  // Essayez différents scaleType pour voir lequel fonctionne le mieux
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                gravity = Gravity.CENTER_HORIZONTAL
+                gravity = Gravity.CENTER
             }
         }
 
-        // Création des champs de texte
+        // Création des champs de texte et autres composants
         val editTextFirstName = EditText(this).apply {
             hint = "Prénom"
             layoutParams = LinearLayout.LayoutParams(
@@ -65,9 +77,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Spinner pour les burgers
-        val spinnerBurgers = Spinner(this)
-        val burgers = arrayOf("Burger du chef", "Cheese Burger", "Burger Montagnard", "Burger Italien", "Burger Végétarien")
-        spinnerBurgers.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, burgers)
+        val spinnerBurgers = Spinner(this).apply {
+            val burgers = arrayOf("Burger du chef", "Cheese Burger", "Burger Montagnard", "Burger Italien", "Burger Végétarien")
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, burgers)
+        }
 
         // TimePicker pour l'heure de livraison
         val timePickerDelivery = TimePicker(this)
@@ -93,16 +106,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Ajout des vues au layout principal
-        layout.addView(imageView)
-        layout.addView(editTextFirstName)
-        layout.addView(editTextLastName)
-        layout.addView(editTextAddress)
-        layout.addView(editTextPhone)
-        layout.addView(spinnerBurgers)
-        layout.addView(timePickerDelivery)
-        layout.addView(buttonSubmit)
+        layout.apply {
+            addView(imageView)
+            addView(editTextFirstName)
+            addView(editTextLastName)
+            addView(editTextAddress)
+            addView(editTextPhone)
+            addView(spinnerBurgers)
+            addView(timePickerDelivery)
+            addView(buttonSubmit)
+        }
 
-        // Définir le layout comme contenu de la vue de l'activité
-        setContentView(layout)
+        // Ajout du LinearLayout au ScrollView
+        scrollView.addView(layout)
+
+        // Définir le ScrollView comme contenu de la vue de l'activité
+        setContentView(scrollView)
     }
 }
