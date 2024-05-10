@@ -32,15 +32,18 @@ class MainActivity : AppCompatActivity() {
         // Ajout d'un ImageView pour le logo
         val imageView = ImageView(this).apply {
             setImageResource(R.drawable.burger)
-            adjustViewBounds = true  // Ajuste les limites de la vue pour préserver le ratio de l'aspect de l'image
-            scaleType = ImageView.ScaleType.FIT_CENTER  // Essayez différents scaleType pour voir lequel fonctionne le mieux
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                500,  // Largeur en pixels
+                500   // Hauteur en pixels
             ).apply {
                 gravity = Gravity.CENTER
             }
         }
+
+
+
 
         // Création des champs de texte et autres composants
         val editTextFirstName = EditText(this).apply {
