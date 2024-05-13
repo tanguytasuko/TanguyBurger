@@ -1,18 +1,26 @@
 package fr.isen.cailleaux.tanguydroidburger
 
+import android.os.AsyncTask
 import android.os.Bundle
+import android.util.Log
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.IOException
 
 class OrderConfirmationActivity : AppCompatActivity() {
 
+    private lateinit var mainLayout: LinearLayout
+    private lateinit var ordersContainer: LinearLayout
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Création du layout principal
-        val mainLayout = LinearLayout(this).apply {
+        mainLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -21,74 +29,93 @@ class OrderConfirmationActivity : AppCompatActivity() {
             setPadding(16, 16, 16, 16)
         }
 
-        // Ajout d'un TextView pour le nom du restaurant
         val restaurantName = TextView(this).apply {
             text = "TanguyDroid Burger"
             textSize = 24f
         }
 
-        // Ajout d'un TextView pour la confirmation
         val confirmationMessage = TextView(this).apply {
             text = "Votre commande a été enregistrée avec succès!"
             textSize = 20f
         }
 
-        // Ajout du conteneur pour les commandes passées
-        val ordersContainer = LinearLayout(this).apply {
+        ordersContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
 
-        // Ajouter les vues au layout principal
-        mainLayout.addView(restaurantName)
-        mainLayout.addView(confirmationMessage)
-        mainLayout.addView(ordersContainer)
+        mainLayout.apply {
+            addView(restaurantName)
+            addView(confirmationMessage)
+            addView(ordersContainer)
+        }
 
         setContentView(mainLayout)
-
-        // Appel pour récupérer les commandes passées
-        fetchPastOrders(ordersContainer)
+        fetchPastOrders()
     }
 
-    private fun fetchPastOrders(container: LinearLayout) {
-        val client = OkHttpClient()
-        val requestBody = FormBody.Builder()
-            .add("id_shop", "1")
-            .add("id_user", "355")
-            .build()
+    private fun fetchPastOrders() {
+        val json = JSONObject().apply {
+            put("id_shop", 1)
+            put("id_user", 355)
+        }
+
+        val requestBody = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
         val request = Request.Builder()
             .url("http://test.api.catering.bluecodegames.com/listorders")
             .post(requestBody)
             .build()
 
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    Toast.makeText(applicationContext, "Failed to fetch orders: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val responseData = response.body?.string()
-                    runOnUiThread {
-                        displayPastOrders(responseData, container)
-                    }
-                } else {
-                    runOnUiThread {
-                        Toast.makeText(applicationContext, "Error fetching orders", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        })
+        FetchOrdersTask().execute(request)
     }
 
-    private fun displayPastOrders(data: String?, container: LinearLayout) {
-        // Ici vous devrez parser le JSON et créer des vues pour chaque commande
-        // Pour simplifier, on suppose que data contient une chaîne simple.
-        val orderView = TextView(this).apply {
-            text = data ?: "No past orders"
-            textSize = 18f
+    private inner class FetchOrdersTask : AsyncTask<Request, Void, String>() {
+        override fun doInBackground(vararg params: Request): String {
+            val client = OkHttpClient()
+            try {
+                client.newCall(params[0]).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                    return response.body?.string() ?: ""
+                }
+            } catch (e: IOException) {
+                Log.e("HTTP Request", "Error fetching orders", e)
+                return ""
+            }
         }
-        container.addView(orderView)
+
+        override fun onPostExecute(result: String) {
+            super.onPostExecute(result)
+            Log.d("API Response", "Response received: $result")
+            if (result.isNotEmpty()) {
+                displayPastOrders(result)
+            } else {
+                Toast.makeText(applicationContext, "Erreur lors de la récupération des données", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
+
+    private fun displayPastOrders(data: String) {
+        try {
+            val jsonObject = JSONObject(data)
+            val jsonArray = jsonObject.getJSONArray("data")
+
+            if (jsonArray.length() == 0) {
+                Toast.makeText(this, "Pas de commandes à afficher", Toast.LENGTH_SHORT).show()
+                return
+            }
+
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                val messageJson = JSONObject(item.getString("message")) // Parse the nested JSON string
+                val orderView = TextView(this).apply {
+                    text = "Order ID: ${item.getString("id_sender")}, Burger: ${messageJson.getString("burger")}, Name: ${messageJson.getString("firstname")} ${messageJson.getString("lastname")}"
+                    textSize = 18f
+                }
+                ordersContainer.addView(orderView)
+            }
+        } catch (e: JSONException) {
+            Log.e("JSON Parsing", "Error parsing orders", e)
+            Toast.makeText(this, "Erreur d'analyse des commandes", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 }

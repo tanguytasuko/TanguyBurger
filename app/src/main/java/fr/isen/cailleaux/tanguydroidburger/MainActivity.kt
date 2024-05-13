@@ -75,10 +75,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun submitOrder() {
-        val firstName = editTextFirstName.text.toString()
-        val lastName = editTextLastName.text.toString()
-        val address = editTextAddress.text.toString()
-        val phone = editTextPhone.text.toString()
+        val firstName = editTextFirstName.text.toString().trim()
+        val lastName = editTextLastName.text.toString().trim()
+        val address = editTextAddress.text.toString().trim()
+        val phone = editTextPhone.text.toString().trim()
         val burger = spinnerBurgers.selectedItem.toString()
         val deliveryTime = "${timePickerDelivery.hour}:${timePickerDelivery.minute}"
 
@@ -88,8 +88,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         val json = JSONObject().apply {
-            put("id_shop", "1")
-            put("id_user", "355")
+            put("id_shop", 1)
+            put("id_user", 355)
             put("msg", JSONObject().apply {
                 put("firstname", firstName)
                 put("lastname", lastName)
@@ -104,12 +104,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sendOrder(json: JSONObject) {
-        // Exécution de la requête réseau dans un AsyncTask
         NetworkTask().execute(json.toString())
     }
 
-    // Classe interne pour l'opération réseau
-    private inner class NetworkTask : AsyncTask<String, Void, String>() {
+    inner class NetworkTask : AsyncTask<String, Void, String>() {
 
         override fun doInBackground(vararg params: String): String? {
             val client = OkHttpClient()
@@ -122,28 +120,18 @@ class MainActivity : AppCompatActivity() {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) {
-                    return "Erreur lors de la commande: Code ${response.code}"
-                }
-                return response.body?.string() // Assurez-vous de lire la réponse ici
+                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                return response.body?.string()
             }
         }
 
         override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-            if (result != null) {
-                if (result.startsWith("Erreur")) {
-                    Toast.makeText(applicationContext, result, Toast.LENGTH_LONG).show()
-                } else {
-                    val intent = Intent(this@MainActivity, OrderConfirmationActivity::class.java).apply {
-                        putExtra("orderDetails", result)
-                    }
-                    startActivity(intent)
+            result?.let {
+                Intent(this@MainActivity, OrderConfirmationActivity::class.java).apply {
+                    putExtra("orderDetails", it)
+                    startActivity(this)
                 }
-            } else {
-                Toast.makeText(applicationContext, "Réponse nulle du serveur", Toast.LENGTH_LONG).show()
-            }
+            } ?: Toast.makeText(applicationContext, "Réponse nulle du serveur", Toast.LENGTH_LONG).show()
         }
     }
-
 }
