@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         val json = JSONObject().apply {
-            put("id_shop", 1)
+            put("id_shop", "1")
             put("id_user", 355)
             put("msg", JSONObject().apply {
                 put("firstname", firstName)
